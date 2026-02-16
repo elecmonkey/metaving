@@ -1,6 +1,6 @@
 {
   "name": "@metaving/core",
-  "version": "0.0.0",
+  "version": "1.0.0-alpha.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "src/index.ts",

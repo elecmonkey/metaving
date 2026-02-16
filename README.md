@@ -60,6 +60,16 @@ server/routes/api/user/[id].ts  →  /api/user/:id
 - `start`：运行构建产物，端口默认 4173。
 - `export`：静态导出到 dist/export。
 
+## 发布流程
+
+1. 将版本号更新为符合 SemVer 的预发布版本，例如 `1.0.0-alpha.0`。
+2. 打标签并推送：`git tag v1.0.0-alpha.0 && git push origin v1.0.0-alpha.0`。
+3. GitHub Actions 会根据标签自动选择 npm dist-tag：  
+   - `-alpha.x` → `alpha`  
+   - `-beta.x` → `beta`  
+   - `-rc.x` → `next`  
+   - 其他 → `latest`
+
 ## 配置
 
 配置文件为 `metaving.config.ts`/`js`/`mjs`/`cjs`，可选；若存在需导出对象。`vite` 字段可选，用于传入 Vite 配置对象或返回 Vite 配置对象的函数。

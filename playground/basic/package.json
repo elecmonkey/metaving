@@ -1,7 +1,7 @@
 {
   "name": "@metaving/playground-basic",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0-alpha.0",
   "packageManager": "pnpm@10.29.3",
   "scripts": {
     "dev": "metaving dev",
