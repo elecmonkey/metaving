@@ -7,7 +7,9 @@
     "build": "pnpm -r run build",
     "run-demo": "pnpm --filter @metaving/core build && pnpm --filter @metaving/cli build && pnpm --filter @metaving/playground-basic dev",
     "build-demo": "pnpm --filter @metaving/core build && pnpm --filter @metaving/cli build && pnpm --filter @metaving/playground-basic build",
-    "start-demo": "pnpm --filter @metaving/playground-basic start"
+    "start-demo": "pnpm --filter @metaving/playground-basic start",
+    "export-demo": "pnpm --filter @metaving/core build && pnpm --filter @metaving/cli build && pnpm --filter @metaving/playground-basic export",
+    "start-export-demo": "node ./scripts/serve-static.mjs ./playground/basic/dist/export 4173"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",

@@ -7,7 +7,8 @@
     "dev": "metaving dev",
     "build": "metaving build",
     "preview": "metaving preview",
-    "start": "metaving start"
+    "start": "metaving start",
+    "export": "metaving export"
   },
   "dependencies": {
     "@vue/server-renderer": "^3.4.0",

@@ -7,9 +7,10 @@ export type {
   MetavingConfig,
   MetavingRouterConfig,
   MetavingServerConfig,
+  MetavingExportConfig,
   MetavingStaticConfig,
   LoadedMetavingConfig
 } from "./config/loadConfig.js"
 export { renderHtml } from "./runtime/renderHtml.js"
 export type { RenderHtmlOptions } from "./runtime/renderHtml.js"
-export { startDevServer, buildProject, startServer, showHelp, logCommandWarning } from "./server/index.js"
+export { startDevServer, buildProject, exportProject, startServer, showHelp, logCommandWarning } from "./server/index.js"

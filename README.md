@@ -16,6 +16,7 @@ pnpm --filter @metaving/playground-basic dev
 pnpm dev
 pnpm build
 pnpm start
+pnpm export
 ```
 
 ## 目录约定
@@ -25,7 +26,6 @@ app/
   App.vue
   pages/            所有 .vue 会生成路由
   router/
-    auto.ts         自动生成
     index.ts        可选自定义路由入口
 server/
   index.ts          自定义服务扩展（可选）
@@ -35,6 +35,7 @@ shared/
   utils.ts
 .metaving/
   generated/        生成产物
+  generated/router.ts  自动路由
 ```
 
 ## 路由规则
@@ -57,6 +58,7 @@ server/routes/api/user/[id].ts  →  /api/user/:id
 - `dev`：Vite middleware + Hono，端口默认 5173。
 - `build`：构建 client 与 ssr 产物。
 - `start`：运行构建产物，端口默认 4173。
+- `export`：静态导出到 dist/export。
 
 ## 配置
 
@@ -74,6 +76,9 @@ export default {
     static: {
       cacheControl: "public, max-age=0, must-revalidate"
     }
+  },
+  export: {
+    routes: ["/", "/about", "/user/1"]
   }
 }
 ```
@@ -105,6 +110,18 @@ export default {
         return "public, max-age=3600"
       }
     }
+  }
+}
+```
+
+### export.routes
+
+静态导出时额外指定要生成的路由列表，用于补充动态路由或特殊页面：
+
+```ts
+export default {
+  export: {
+    routes: ["/user/1", "/user/2"]
   }
 }
 ```

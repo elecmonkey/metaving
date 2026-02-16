@@ -21,16 +21,22 @@ export type MetavingServerConfig = {
   static?: MetavingStaticConfig
 }
 
+export type MetavingExportConfig = {
+  routes?: string[]
+}
+
 export type MetavingConfig = {
   vite?: MetavingUserConfig | ((env: MetavingConfigEnv) => MetavingUserConfig | Promise<MetavingUserConfig>)
   router?: MetavingRouterConfig
   server?: MetavingServerConfig
+  export?: MetavingExportConfig
 }
 
 export type LoadedMetavingConfig = {
   vite: MetavingUserConfig | null
   router: MetavingRouterConfig
   server: MetavingServerConfig
+  export: MetavingExportConfig
 }
 
 const configCandidates = [
@@ -84,7 +90,7 @@ const resolveViteConfigValue = async (
 export const loadMetavingConfig = async (root: string, env: MetavingConfigEnv): Promise<LoadedMetavingConfig> => {
   const configPath = resolveConfigPath(root)
   if (!configPath) {
-    return { vite: null, router: {}, server: {} }
+    return { vite: null, router: {}, server: {}, export: {} }
   }
   const { module } = await unrun({ path: configPath })
   const rawConfig = (module as any)?.default ?? module
@@ -95,7 +101,7 @@ export const loadMetavingConfig = async (root: string, env: MetavingConfigEnv): 
   if (!isPlainObject(resolvedConfig)) {
     throwConfigError([], "必须导出对象")
   }
-  const allowedKeys = new Set(["vite", "router", "server"])
+  const allowedKeys = new Set(["vite", "router", "server", "export"])
   for (const key of Object.keys(resolvedConfig)) {
     if (!allowedKeys.has(key)) {
       throwConfigError([key], "不是允许的配置项")
@@ -104,8 +110,10 @@ export const loadMetavingConfig = async (root: string, env: MetavingConfigEnv): 
   const routerValue = (resolvedConfig as MetavingConfig).router
   const serverValue = (resolvedConfig as MetavingConfig).server
   const viteValue = (resolvedConfig as MetavingConfig).vite
+  const exportValue = (resolvedConfig as MetavingConfig).export
   const router: MetavingRouterConfig = {}
   const server: MetavingServerConfig = {}
+  const exportConfig: MetavingExportConfig = {}
   if (routerValue !== undefined) {
     if (!isPlainObject(routerValue)) {
       throwConfigError(["router"], "必须是对象")
@@ -131,6 +139,23 @@ export const loadMetavingConfig = async (root: string, env: MetavingConfigEnv): 
       server.static = { cacheControl }
     }
   }
+  if (exportValue !== undefined) {
+    if (!isPlainObject(exportValue)) {
+      throwConfigError(["export"], "必须是对象")
+    }
+    const routes = (exportValue as MetavingExportConfig).routes
+    if (routes !== undefined) {
+      if (!Array.isArray(routes)) {
+        throwConfigError(["export", "routes"], "必须是字符串数组")
+      }
+      for (const [index, route] of routes.entries()) {
+        if (typeof route !== "string") {
+          throwConfigError(["export", "routes", String(index)], "必须是字符串")
+        }
+      }
+      exportConfig.routes = routes
+    }
+  }
   const vite = await resolveViteConfigValue(viteValue, env, ["vite"])
-  return { vite, router, server }
+  return { vite, router, server, export: exportConfig }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { buildProject, logCommandWarning, showHelp, startDevServer, startServer } from "@metaving/core"
+import { buildProject, exportProject, logCommandWarning, showHelp, startDevServer, startServer } from "@metaving/core"
 
 const args = process.argv.slice(2)
 const command = args[0]
@@ -17,6 +17,10 @@ const run = async () => {
   }
   if (command === "build") {
     await buildProject(process.cwd())
+    return
+  }
+  if (command === "export") {
+    await exportProject(process.cwd())
     return
   }
   if (command === "start" || command === "preview") {

@@ -8,6 +8,7 @@ import chalk from "chalk"
 import { Hono } from "hono"
 import ora from "ora"
 import { ensureMetavingFiles } from "../conventions/generate.js"
+import { scanPages } from "../conventions/routes.js"
 import { loadMetavingConfig, type MetavingConfigEnv, type MetavingStaticConfig } from "../config/loadConfig.js"
 import { renderHtml } from "../runtime/renderHtml.js"
 import { handleHonoRequest, registerApiRoutes } from "@metaving/plugin-hono"
@@ -323,6 +324,114 @@ const resolveClientEntry = (manifest: Record<string, any>) => {
   return entries.find((item) => item?.isEntry && String(item?.src ?? "").endsWith("entry-client.ts")) || null
 }
 
+const normalizeModulePath = (filePath: string) => filePath.split(path.sep).join("/")
+
+const collectManifestAssets = (manifest: Record<string, any>, entryKey: string | null) => {
+  if (!entryKey || !manifest[entryKey]) {
+    return { files: [] as string[], css: [] as string[] }
+  }
+  const seen = new Set<string>()
+  const files: string[] = []
+  const css: string[] = []
+  const visit = (key: string) => {
+    if (seen.has(key)) return
+    seen.add(key)
+    const entry = manifest[key]
+    if (!entry) return
+    if (entry.file) files.push(entry.file)
+    if (Array.isArray(entry.css)) css.push(...entry.css)
+    if (Array.isArray(entry.imports)) {
+      for (const dep of entry.imports) visit(dep)
+    }
+  }
+  visit(entryKey)
+  return { files, css }
+}
+
+const resolveRouteEntries = (root: string) => {
+  const pagesDir = path.join(root, "app/pages")
+  return scanPages(pagesDir).map((route) => ({
+    path: route.path,
+    moduleId: normalizeModulePath(path.relative(root, route.filePath))
+  }))
+}
+
+const resolveRoutesForExport = (root: string, extraRoutes: string[] | undefined) => {
+  const scanned = resolveRouteEntries(root).map((route) => route.path)
+  const routes = new Set<string>()
+  for (const route of scanned) {
+    if (route.includes(":")) continue
+    routes.add(route)
+  }
+  if (extraRoutes?.length) {
+    for (const route of extraRoutes) {
+      if (!route) continue
+      routes.add(route.startsWith("/") ? route : `/${route}`)
+    }
+  }
+  return Array.from(routes).sort((a, b) => a.localeCompare(b))
+}
+
+const resolveExportFilePath = (exportDir: string, route: string) => {
+  const normalized = route.replace(/\/+$/, "")
+  if (normalized === "" || normalized === "/") {
+    return path.join(exportDir, "index.html")
+  }
+  const segments = normalized.replace(/^\//, "")
+  return path.join(exportDir, segments, "index.html")
+}
+
+export const exportProject = async (root: string) => {
+  const exportEnv: MetavingConfigEnv = { command: "build", mode: "production" }
+  const metavingConfig = await loadMetavingConfig(root, exportEnv)
+  await buildProject(root)
+  const clientDir = path.join(root, "dist/client")
+  const serverEntry = path.join(root, "dist/ssr/server-entry.mjs")
+  if (!fs.existsSync(clientDir) || !fs.existsSync(serverEntry)) {
+    logError("未找到构建产物，请先运行 metaving build")
+    process.exit(1)
+  }
+  const exportDir = path.join(root, "dist/export")
+  fs.rmSync(exportDir, { recursive: true, force: true })
+  fs.cpSync(clientDir, exportDir, { recursive: true })
+  const manifestCandidates = [path.join(clientDir, ".vite/manifest.json"), path.join(clientDir, "manifest.json")]
+  const manifestPath = manifestCandidates.find((candidate) => fs.existsSync(candidate))
+  const manifest = manifestPath ? JSON.parse(fs.readFileSync(manifestPath, "utf8")) : {}
+  const clientEntry = resolveClientEntry(manifest)
+  const serverMod = await import(pathToFileURL(serverEntry).href)
+  const routeEntries = resolveRouteEntries(root)
+  const routeEntryMap = new Map(routeEntries.map((entry) => [entry.path, entry.moduleId]))
+  const routes = resolveRoutesForExport(root, metavingConfig.export.routes)
+  if (!routes.length) {
+    logWarn("未找到可导出的路由")
+    return
+  }
+  const skipped = scanPages(path.join(root, "app/pages"))
+    .map((route) => route.path)
+    .filter((route) => route.includes(":"))
+    .filter((route) => !routes.includes(route))
+  if (skipped.length) {
+    logWarn(`以下动态路由未导出：${skipped.join(", ")}`)
+  }
+  for (const route of routes) {
+    const moduleId = routeEntryMap.get(route) ?? null
+    const pageAssets = collectManifestAssets(manifest, moduleId)
+    const css = Array.from(new Set([...(clientEntry?.css ?? []), ...pageAssets.css]))
+    const modulePreload = Array.from(new Set(pageAssets.files))
+    const appHtml = await serverMod.render(route)
+    const html = renderHtml({
+      appHtml,
+      css,
+      scriptSrc: clientEntry?.file ? `/${clientEntry.file}` : undefined,
+      modulePreload
+    })
+    const filePath = resolveExportFilePath(exportDir, route)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, html, "utf8")
+  }
+  logSuccess(`${brand} export 完成`)
+}
+
 export const startServer = async (root: string) => {
   const serveEnv: MetavingConfigEnv = { command: "serve", mode: "production" }
   const metavingConfig = await loadMetavingConfig(root, serveEnv)
@@ -365,11 +474,12 @@ export const startServer = async (root: string) => {
 }
 
 export const showHelp = () => {
-  console.log(`${brand} ${chalk.bold("Usage")}: metaving <dev|build|start>`)
+  console.log(`${brand} ${chalk.bold("Usage")}: metaving <dev|build|start|export>`)
   console.log(`${chalk.bold("Commands")}:`)
   console.log(`  ${chalk.cyan("dev")}    启动开发服务`)
   console.log(`  ${chalk.cyan("build")}  构建产物`)
   console.log(`  ${chalk.cyan("start")}  运行构建产物`)
+  console.log(`  ${chalk.cyan("export")}  静态导出`)
 }
 
 export const logCommandWarning = (command: string) => {
