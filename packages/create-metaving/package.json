@@ -1,0 +1,25 @@
+{
+  "name": "create-metaving",
+  "version": "0.0.0",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "create-metaving": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm exec tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30"
+  },
+  "dependencies": {
+    "giget": "3.1.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

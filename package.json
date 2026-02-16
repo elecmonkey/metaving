@@ -1,0 +1,16 @@
+{
+  "name": "metaving",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@10.29.3",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "run-demo": "pnpm --filter @metaving/core build && pnpm --filter @metaving/cli build && pnpm --filter @metaving/playground-basic dev",
+    "build-demo": "pnpm --filter @metaving/core build && pnpm --filter @metaving/cli build && pnpm --filter @metaving/playground-basic build",
+    "start-demo": "pnpm --filter @metaving/playground-basic start"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "typescript": "^5.5.4"
+  }
+}

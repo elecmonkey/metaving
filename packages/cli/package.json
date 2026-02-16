@@ -1,0 +1,24 @@
+{
+  "name": "@metaving/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "metaving": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm exec tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30"
+  },
+  "dependencies": {
+    "@metaving/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
